@@ -191,7 +191,7 @@ namespace Simple
         public static byte[] CreateTankMessage(string name, string color)
         {
 
-            string json = JsonConvert.SerializeObject(new { Name = name, Color = color });
+            string json = JsonConvert.SerializeObject(new { Name = name});
             byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(json);
             return AddByteStartOfToArray(clientMessageAsByteArray, (byte)NetworkMessageType.createTank);
         }
