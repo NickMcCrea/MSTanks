@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -38,7 +39,7 @@ namespace Simple
             Thread.Sleep(5000);
 
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.test, ""));
+            //SendMessage(MessageFactory.CreateMessage(NetworkMessageType.test, ""));
 
 
             //send the create tank request.
@@ -72,7 +73,7 @@ namespace Simple
                 client = new TcpClient(ipAddress, port);
 
                 //this will  hold our message data.
-                Byte[] bytes = new Byte[1024];
+                Byte[] bytes = new Byte[512];
 
                 while (true)
                 {
@@ -87,11 +88,22 @@ namespace Simple
                         while ((length = stream.Read(bytes, 0, bytes.Length)) != 0)
                         {
 
+                           //for(int i = 0; i < bytes.Length-1; i++)
+                           // {
+                           //     if (bytes[i] == 125)
+                           //         if (bytes[i + 1] == 125)
+                           //         {
+                           //             Debugger.Break();
+                           //             Console.WriteLine("Gubbed JSON");
+                           //         }
+                           // }
+
                             lock (incomingMessages)
                             {
-                                Byte[] byteArrayCopy = new Byte[1024];
+                                Byte[] byteArrayCopy = new Byte[512];
                                 bytes.CopyTo(byteArrayCopy, 0);
                                 incomingMessages.Enqueue(byteArrayCopy);
+                                bytes = new Byte[512];
                             }
                         }
                     }
