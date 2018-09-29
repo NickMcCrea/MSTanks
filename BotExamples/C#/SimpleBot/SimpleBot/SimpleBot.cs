@@ -79,7 +79,9 @@ namespace Simple
                     // Get a stream object for reading 				
                     using (NetworkStream stream = client.GetStream())
                     {
+
                         int length;
+                      
 
                         // Read incoming stream into byte arrary. 					
                         while ((length = stream.Read(bytes, 0, bytes.Length)) != 0)
@@ -109,6 +111,13 @@ namespace Simple
                 Array.Copy(bytes, 1, incomingData, 0, length - 1);
                 string clientMessage = Encoding.ASCII.GetString(incomingData);
                 Console.WriteLine(messageType.ToString() + " -- " + clientMessage);
+
+                if(messageType == NetworkMessageType.objectUpdate)
+                {
+                    GameObjectState objectState = JsonConvert.DeserializeObject<GameObjectState>(clientMessage);
+                    Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
+
+                }
 
             }
             catch (Exception e)
@@ -154,7 +163,7 @@ namespace Simple
         private void BasicTest()
         {
 
-             Thread.Sleep(1000);
+            Thread.Sleep(1000);
 
             SendMessage(MessageFactory.CreateMessage(NetworkMessageType.forward, ""));
             Thread.Sleep(1000);
@@ -185,6 +194,10 @@ namespace Simple
             Thread.Sleep(1000);
 
             SendMessage(MessageFactory.CreateMessage(NetworkMessageType.fire, ""));
+
+
+            //SendMessage(MessageFactory.CreateMessage(NetworkMessageType.despawnTank, ""));
+
 
         }
 
@@ -235,6 +248,23 @@ namespace Simple
         objectUpdate = 12
     }
 
+    public class GameObjectState
+    {
+        public string Name;
+        public string Type;
+        public float X;
+        public float Y;
+        public float ForwardX;
+        public float ForwardY;
+        public float Heading;
+        public float TurretHeading;
+        public float TurretForwardX;
+        public float TurretForwardY;
 
+        public int Health;
+        public int Ammo;
+
+
+    }
 
 }
