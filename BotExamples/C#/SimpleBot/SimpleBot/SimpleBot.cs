@@ -34,12 +34,16 @@ namespace Simple
             //wait for a bit to allow connection to establish before proceeding.
             Thread.Sleep(5000);
 
+
+            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.test, ""));
+
+
             //send the create tank request.
             SendMessage(MessageFactory.CreateTankMessage(name, colour));
 
 
             //conduct basic movement requests.
-            BasicMovementTest();
+            BasicTest();
 
         }
 
@@ -80,7 +84,9 @@ namespace Simple
 
                             lock (incomingMessages)
                             {
-                                incomingMessages.Enqueue(bytes);
+                                Byte[] byteArrayCopy = new Byte[1024];
+                                bytes.CopyTo(byteArrayCopy, 0);
+                                incomingMessages.Enqueue(byteArrayCopy);
                             }
                         }
                     }
@@ -99,11 +105,6 @@ namespace Simple
                 var incomingData = new byte[length];
                 Array.Copy(bytes, 1, incomingData, 0, length - 1);
                 string clientMessage = Encoding.ASCII.GetString(incomingData);
-
-
-                var strings = clientMessage.Split(':');
-                var token = strings[0];
-
                 Console.WriteLine(messageType.ToString() + " -- " + clientMessage);
 
             }
@@ -147,9 +148,10 @@ namespace Simple
 
         }
 
-        private void BasicMovementTest()
+        private void BasicTest()
         {
-            Thread.Sleep(1000);
+
+             Thread.Sleep(1000);
 
             SendMessage(MessageFactory.CreateMessage(NetworkMessageType.forward, ""));
             Thread.Sleep(1000);
