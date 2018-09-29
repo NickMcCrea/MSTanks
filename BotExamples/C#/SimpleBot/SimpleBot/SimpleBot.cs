@@ -10,6 +10,9 @@ namespace Simple
     public class SimpleBot
     {
 
+        private string ipAddress = "localhost";
+        private int port = 8052;
+
         
         //Our TCP client.
         private TcpClient client;
@@ -66,7 +69,7 @@ namespace Simple
         {
             try
             {
-                client = new TcpClient("localhost", 8052);
+                client = new TcpClient(ipAddress, port);
 
                 //this will  hold our message data.
                 Byte[] bytes = new Byte[1024];
