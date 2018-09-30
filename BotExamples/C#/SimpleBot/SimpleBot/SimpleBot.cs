@@ -15,7 +15,7 @@ namespace Simple
         private int port = 8052;
         private string tankName = "SimpleBot";
 
-        
+
         //Our TCP client.
         private TcpClient client;
 
@@ -83,7 +83,7 @@ namespace Simple
                     {
 
                         int length;
-                      
+
 
                         // Read incoming stream into byte arrary. 					
                         while ((length = stream.Read(bytes, 0, bytes.Length)) != 0)
@@ -115,12 +115,23 @@ namespace Simple
                 var incomingData = new byte[length];
                 Array.Copy(bytes, 1, incomingData, 0, length - 1);
                 string clientMessage = Encoding.ASCII.GetString(incomingData);
-                Console.WriteLine(messageType.ToString() + " -- " + clientMessage);
-
-                if(messageType == NetworkMessageType.objectUpdate)
+            
+                if (messageType == NetworkMessageType.objectUpdate)
                 {
                     GameObjectState objectState = JsonConvert.DeserializeObject<GameObjectState>(clientMessage);
-                    Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
+
+
+                    if (objectState.Name == tankName)
+                    {
+                        //it's our tank
+                        //Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
+
+                    }
+                    else
+                    {
+                        //it's something else.
+                        Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
+                    }
 
                 }
 
@@ -214,7 +225,7 @@ namespace Simple
         public static byte[] CreateTankMessage(string name)
         {
 
-            string json = JsonConvert.SerializeObject(new { Name = name});
+            string json = JsonConvert.SerializeObject(new { Name = name });
             byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(json);
             return AddByteStartOfToArray(clientMessageAsByteArray, (byte)NetworkMessageType.createTank);
         }
