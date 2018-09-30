@@ -13,6 +13,7 @@ namespace Simple
 
         private string ipAddress = "localhost";
         private int port = 8052;
+        private string tankName = "SimpleBot";
 
         
         //Our TCP client.
@@ -27,7 +28,7 @@ namespace Simple
 
         public bool BotQuit { get; internal set; }
 
-        public SimpleBot(string ip, int port, string name, string colour)
+        public SimpleBot()
         {
 
 
@@ -39,11 +40,11 @@ namespace Simple
             Thread.Sleep(5000);
 
 
-            //SendMessage(MessageFactory.CreateMessage(NetworkMessageType.test, ""));
+            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.test, ""));
 
 
             //send the create tank request.
-            SendMessage(MessageFactory.CreateTankMessage(name, colour));
+            SendMessage(MessageFactory.CreateTankMessage(tankName));
 
 
             //conduct basic movement requests.
@@ -88,21 +89,13 @@ namespace Simple
                         while ((length = stream.Read(bytes, 0, bytes.Length)) != 0)
                         {
 
-                           //for(int i = 0; i < bytes.Length-1; i++)
-                           // {
-                           //     if (bytes[i] == 125)
-                           //         if (bytes[i + 1] == 125)
-                           //         {
-                           //             Debugger.Break();
-                           //             Console.WriteLine("Gubbed JSON");
-                           //         }
-                           // }
-
                             lock (incomingMessages)
                             {
                                 Byte[] byteArrayCopy = new Byte[512];
                                 bytes.CopyTo(byteArrayCopy, 0);
                                 incomingMessages.Enqueue(byteArrayCopy);
+
+                                //clear the array for the next message.
                                 bytes = new Byte[512];
                             }
                         }
@@ -218,7 +211,7 @@ namespace Simple
     public static class MessageFactory
     {
 
-        public static byte[] CreateTankMessage(string name, string color)
+        public static byte[] CreateTankMessage(string name)
         {
 
             string json = JsonConvert.SerializeObject(new { Name = name});

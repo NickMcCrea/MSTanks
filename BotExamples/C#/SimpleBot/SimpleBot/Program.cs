@@ -6,7 +6,7 @@ namespace Simple
     {
         static void Main(string[] args)
         {
-            SimpleBot bot = new SimpleBot("http://localhost", 8000, "NickBot", "#EA9414");
+            SimpleBot bot = new SimpleBot();
 
 
             while (!bot.BotQuit)
