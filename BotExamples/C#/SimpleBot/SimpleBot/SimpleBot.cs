@@ -13,7 +13,7 @@ namespace Simple
 
         private string ipAddress = "localhost";
         private int port = 8052;
-        private string tankName = "SimpleBot";
+        private string tankName;
 
 
         //Our TCP client.
@@ -28,9 +28,9 @@ namespace Simple
 
         public bool BotQuit { get; internal set; }
 
-        public SimpleBot()
+        public SimpleBot(string name="SimpleBot")
         {
-
+            tankName = name;
 
             incomingMessages = new Queue<byte[]>();
 
@@ -84,6 +84,7 @@ namespace Simple
                     {
                         int type = stream.ReadByte();
                         int length = stream.ReadByte();
+
                         Byte[] bytes = new Byte[length];
 
                         //there's a JSON package
