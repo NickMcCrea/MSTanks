@@ -40,7 +40,7 @@ namespace Simple
             Thread.Sleep(5000);
 
 
-            //SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.test));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.test));
 
 
             //send the create tank request.
@@ -86,19 +86,36 @@ namespace Simple
                         int length = stream.ReadByte();
                         Byte[] bytes = new Byte[length];
 
-
-                        // Read incoming stream into byte arrary. 					
-                        stream.Read(bytes, 0, length);
-
-                        Byte[] byteArrayCopy = new Byte[length + 2];
-                        bytes.CopyTo(byteArrayCopy, 2);
-                        byteArrayCopy[0] = (byte)type;
-                        byteArrayCopy[1] = (byte)length;
-
-                        lock (incomingMessages)
+                        //there's a JSON package
+                        if (length > 0)
                         {
-                            incomingMessages.Enqueue(byteArrayCopy);
+                            // Read incoming stream into byte arrary. 					
+                            stream.Read(bytes, 0, length);
+
+                            Byte[] byteArrayCopy = new Byte[length + 2];
+                            bytes.CopyTo(byteArrayCopy, 2);
+                            byteArrayCopy[0] = (byte)type;
+                            byteArrayCopy[1] = (byte)length;
+
+                            lock (incomingMessages)
+                            {
+                                incomingMessages.Enqueue(byteArrayCopy);
+                            }
                         }
+                        else
+                        {
+
+                            //no JSON
+                            lock (incomingMessages)
+                            {
+                                byte[] zeroPayloadMessage = new byte[2];
+                                zeroPayloadMessage[0] = (byte)type;
+                                zeroPayloadMessage[1] = 0;
+                                incomingMessages.Enqueue(zeroPayloadMessage);
+                            }
+
+                        }
+     
                     }
 
                 }
@@ -110,20 +127,28 @@ namespace Simple
             }
         }
 
-        private void DecodeMessage(NetworkMessageType messageType, byte[] bytes, int length)
+        private void DecodeMessage(NetworkMessageType messageType, int payloadLength, byte[] bytes)
         {
             try
             {
-                var payload = new byte[length - 2];
-                Array.Copy(bytes, 2, payload, 0, length - 2);
+                string jsonPayload = "";
+                if (payloadLength > 0)
+                {
+                    var payload = new byte[payloadLength];
+                    Array.Copy(bytes, 2, payload, 0, payloadLength);
+                    jsonPayload = Encoding.ASCII.GetString(payload);
 
-                string clientMessage = Encoding.ASCII.GetString(payload);
+                }
 
+                if(messageType == NetworkMessageType.test)
+                {
+                    Console.WriteLine("TEST ACK RECEIVED");
+                }
 
                 if (messageType == NetworkMessageType.objectUpdate)
                 {
-                    Console.WriteLine(clientMessage);
-                    GameObjectState objectState = JsonConvert.DeserializeObject<GameObjectState>(clientMessage);
+                    Console.WriteLine(jsonPayload);
+                    GameObjectState objectState = JsonConvert.DeserializeObject<GameObjectState>(jsonPayload);
 
 
                     if (objectState.Name == tankName)
@@ -137,7 +162,6 @@ namespace Simple
                         //it's something else.
                         Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
                     }
-
                 }
 
             }
@@ -176,7 +200,7 @@ namespace Simple
             if (incomingMessages.Count > 0)
             {
                 var nextMessage = incomingMessages.Dequeue();
-                DecodeMessage((NetworkMessageType)nextMessage[0], nextMessage, nextMessage.Length);
+                DecodeMessage((NetworkMessageType)nextMessage[0], nextMessage[1], nextMessage);
             }
 
         }
