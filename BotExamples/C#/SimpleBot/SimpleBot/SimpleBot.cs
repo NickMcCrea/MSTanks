@@ -40,7 +40,7 @@ namespace Simple
             Thread.Sleep(5000);
 
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.test, ""));
+            // SendMessage(MessageFactory.CreateMessage(NetworkMessageType.test, ""));
 
 
             //send the create tank request.
@@ -74,33 +74,35 @@ namespace Simple
                 client = new TcpClient(ipAddress, port);
 
                 //this will  hold our message data.
-                Byte[] bytes = new Byte[512];
 
-                while (true)
+
+                // Get a stream object for reading 				
+                using (NetworkStream stream = client.GetStream())
                 {
-                    // Get a stream object for reading 				
-                    using (NetworkStream stream = client.GetStream())
-                    {
 
-                        int length;
+                    while (client.Connected)
+                    {
+                        int type = stream.ReadByte();
+                        int length = stream.ReadByte();
+                        Byte[] bytes = new Byte[length];
 
 
                         // Read incoming stream into byte arrary. 					
-                        while ((length = stream.Read(bytes, 0, bytes.Length)) != 0)
+                        stream.Read(bytes, 0, length);
+
+                        Byte[] byteArrayCopy = new Byte[length + 2];
+                        bytes.CopyTo(byteArrayCopy, 2);
+                        byteArrayCopy[0] = (byte)type;
+                        byteArrayCopy[1] = (byte)length;
+
+                        lock (incomingMessages)
                         {
-
-                            lock (incomingMessages)
-                            {
-                                Byte[] byteArrayCopy = new Byte[512];
-                                bytes.CopyTo(byteArrayCopy, 0);
-                                incomingMessages.Enqueue(byteArrayCopy);
-
-                                //clear the array for the next message.
-                                bytes = new Byte[512];
-                            }
+                            incomingMessages.Enqueue(byteArrayCopy);
                         }
                     }
+
                 }
+
             }
             catch (SocketException socketException)
             {
@@ -112,19 +114,22 @@ namespace Simple
         {
             try
             {
-                var incomingData = new byte[length];
-                Array.Copy(bytes, 1, incomingData, 0, length - 1);
-                string clientMessage = Encoding.ASCII.GetString(incomingData);
-            
+                var payload = new byte[length - 2];
+                Array.Copy(bytes, 2, payload, 0, length - 2);
+
+                string clientMessage = Encoding.ASCII.GetString(payload);
+
+
                 if (messageType == NetworkMessageType.objectUpdate)
                 {
+                    Console.WriteLine(clientMessage);
                     GameObjectState objectState = JsonConvert.DeserializeObject<GameObjectState>(clientMessage);
 
 
                     if (objectState.Name == tankName)
                     {
                         //it's our tank
-                        //Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
+                        Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
 
                     }
                     else
