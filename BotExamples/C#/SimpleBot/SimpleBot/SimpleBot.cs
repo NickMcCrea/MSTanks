@@ -73,9 +73,7 @@ namespace Simple
             {
                 client = new TcpClient(ipAddress, port);
 
-                //this will  hold our message data.
-
-
+            
                 // Get a stream object for reading 				
                 using (NetworkStream stream = client.GetStream())
                 {
