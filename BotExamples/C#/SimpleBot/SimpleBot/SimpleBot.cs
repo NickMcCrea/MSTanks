@@ -40,7 +40,7 @@ namespace Simple
             Thread.Sleep(5000);
 
 
-            // SendMessage(MessageFactory.CreateMessage(NetworkMessageType.test, ""));
+            //SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.test));
 
 
             //send the create tank request.
@@ -186,38 +186,38 @@ namespace Simple
 
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.forward, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.forward));
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.reverse, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.reverse));
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.stop, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stop));
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.left, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.left));
             Thread.Sleep(1000);
 
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.right, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.right));
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.stop, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stop));
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.turretLeft, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.turretLeft));
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.turretRight, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.turretRight));
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.stopTurret, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurret));
             Thread.Sleep(1000);
 
-            SendMessage(MessageFactory.CreateMessage(NetworkMessageType.fire, ""));
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.fire));
 
 
-            //SendMessage(MessageFactory.CreateMessage(NetworkMessageType.despawnTank, ""));
+            //SendMessage(MessageFactory.CreateMessage(NetworkMessageType.despawnTank));
 
 
         }
@@ -232,21 +232,25 @@ namespace Simple
 
             string json = JsonConvert.SerializeObject(new { Name = name });
             byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(json);
-            return AddByteStartOfToArray(clientMessageAsByteArray, (byte)NetworkMessageType.createTank);
+            return AddTypeAndLengthToArray(clientMessageAsByteArray, (byte)NetworkMessageType.createTank);
         }
 
-        public static byte[] AddByteStartOfToArray(byte[] bArray, byte newByte)
+        public static byte[] AddTypeAndLengthToArray(byte[] bArray, byte type)
         {
-            byte[] newArray = new byte[bArray.Length + 1];
-            bArray.CopyTo(newArray, 1);
-            newArray[0] = newByte;
+            byte[] newArray = new byte[bArray.Length + 2];
+            bArray.CopyTo(newArray, 2);
+            newArray[0] = type;
+            newArray[1] = (byte)bArray.Length;
             return newArray;
         }
 
-        public static byte[] CreateMessage(NetworkMessageType type, string message)
+        public static byte[] CreateZeroPayloadMessage(NetworkMessageType type)
         {
-            byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(message);
-            return AddByteStartOfToArray(clientMessageAsByteArray, (byte)type);
+
+            byte[] message = new byte[2];
+            message[0] = (byte)type;
+            message[1] = 0;
+            return message;
         }
 
 
