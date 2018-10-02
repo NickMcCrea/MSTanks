@@ -11,7 +11,7 @@ namespace Simple
     public class SimpleBot
     {
 
-        private string ipAddress = "localhost";
+        private string ipAddress = "127.0.0.1";
         private int port = 8052;
         private string tankName;
 
@@ -28,7 +28,7 @@ namespace Simple
 
         public bool BotQuit { get; internal set; }
 
-        public SimpleBot(string name="SimpleBot")
+        public SimpleBot(string name="SimpleBot1")
         {
             tankName = name;
 
@@ -45,7 +45,6 @@ namespace Simple
 
             //send the create tank request.
             SendMessage(MessageFactory.CreateTankMessage(tankName));
-
 
             //conduct basic movement requests.
             BasicTest();
@@ -136,7 +135,7 @@ namespace Simple
                     var payload = new byte[payloadLength];
                     Array.Copy(bytes, 2, payload, 0, payloadLength);
                     jsonPayload = Encoding.ASCII.GetString(payload);
-
+                    //Console.WriteLine("Payload length: " + payloadLength);
                 }
 
                 if(messageType == NetworkMessageType.test)
@@ -146,21 +145,33 @@ namespace Simple
 
                 if (messageType == NetworkMessageType.objectUpdate)
                 {
-                    Console.WriteLine(jsonPayload);
+                    //Console.WriteLine(jsonPayload);
                     GameObjectState objectState = JsonConvert.DeserializeObject<GameObjectState>(jsonPayload);
 
 
                     if (objectState.Name == tankName)
                     {
                         //it's our tank
-                        Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
+                        //Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
 
                     }
                     else
                     {
                         //it's something else.
-                        Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
+                        //Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
                     }
+                }
+                if(messageType == NetworkMessageType.healthPickup)
+                {
+                    Console.WriteLine("HEALTH PICKUP EVENT");
+                } 
+                if (messageType == NetworkMessageType.ammoPickup)
+                {
+                    Console.WriteLine("AMMO PICKUP EVENT");
+                }
+                if (messageType == NetworkMessageType.snitchPickup)
+                {
+                    Console.WriteLine("SNITCH PICKUP EVENT");
                 }
 
             }
@@ -293,7 +304,10 @@ namespace Simple
         turretLeft = 9,
         turretRight = 10,
         stopTurret = 11,
-        objectUpdate = 12
+        objectUpdate = 12,
+        healthPickup = 13,
+        ammoPickup = 14,
+        snitchPickup = 15
     }
 
     public class GameObjectState
