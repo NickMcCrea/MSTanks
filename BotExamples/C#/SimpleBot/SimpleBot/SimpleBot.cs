@@ -135,7 +135,6 @@ namespace Simple
                     var payload = new byte[payloadLength];
                     Array.Copy(bytes, 2, payload, 0, payloadLength);
                     jsonPayload = Encoding.ASCII.GetString(payload);
-                    //Console.WriteLine("Payload length: " + payloadLength);
                 }
 
                 if(messageType == NetworkMessageType.test)
@@ -145,7 +144,6 @@ namespace Simple
 
                 if (messageType == NetworkMessageType.objectUpdate)
                 {
-                    //Console.WriteLine(jsonPayload);
                     GameObjectState objectState = JsonConvert.DeserializeObject<GameObjectState>(jsonPayload);
 
 
@@ -161,17 +159,10 @@ namespace Simple
                         //Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
                     }
                 }
-                if(messageType == NetworkMessageType.healthPickup)
+                
+                else
                 {
-                    Console.WriteLine("HEALTH PICKUP EVENT");
-                } 
-                if (messageType == NetworkMessageType.ammoPickup)
-                {
-                    Console.WriteLine("AMMO PICKUP EVENT");
-                }
-                if (messageType == NetworkMessageType.snitchPickup)
-                {
-                    Console.WriteLine("SNITCH PICKUP EVENT");
+                    Console.WriteLine(messageType.ToString());
                 }
 
             }
@@ -307,7 +298,10 @@ namespace Simple
         objectUpdate = 12,
         healthPickup = 13,
         ammoPickup = 14,
-        snitchPickup = 15
+        snitchPickup = 15,
+        destroyed = 16,
+        enteredGoal = 17,
+        kill = 18
     }
 
     public class GameObjectState
@@ -316,17 +310,10 @@ namespace Simple
         public string Type;
         public float X;
         public float Y;
-        public float ForwardX;
-        public float ForwardY;
         public float Heading;
         public float TurretHeading;
-        public float TurretForwardX;
-        public float TurretForwardY;
-
         public int Health;
         public int Ammo;
-
-
     }
 
 }
