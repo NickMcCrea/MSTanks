@@ -28,7 +28,7 @@ namespace Simple
 
         public bool BotQuit { get; internal set; }
 
-        public SimpleBot(string name="SimpleBot1")
+        public SimpleBot(string name = "SimpleBot1")
         {
             tankName = name;
 
@@ -72,7 +72,7 @@ namespace Simple
             {
                 client = new TcpClient(ipAddress, port);
 
-            
+
                 // Get a stream object for reading 				
                 using (NetworkStream stream = client.GetStream())
                 {
@@ -113,7 +113,7 @@ namespace Simple
                             }
 
                         }
-     
+
                     }
 
                 }
@@ -137,7 +137,7 @@ namespace Simple
                     jsonPayload = Encoding.ASCII.GetString(payload);
                 }
 
-                if(messageType == NetworkMessageType.test)
+                if (messageType == NetworkMessageType.test)
                 {
                     Console.WriteLine("TEST ACK RECEIVED");
                 }
@@ -145,21 +145,10 @@ namespace Simple
                 if (messageType == NetworkMessageType.objectUpdate)
                 {
                     GameObjectState objectState = JsonConvert.DeserializeObject<GameObjectState>(jsonPayload);
+                    Console.WriteLine("ID: " + objectState.Id + " Type: " + objectState.Type + " Name: " + objectState.Name + " ---- " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
 
-
-                    if (objectState.Name == tankName)
-                    {
-                        //it's our tank
-                        //Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
-
-                    }
-                    else
-                    {
-                        //it's something else.
-                        //Console.WriteLine(objectState.Name + " - " + objectState.X + "," + objectState.Y + " : " + objectState.Heading + " : " + objectState.TurretHeading);
-                    }
                 }
-                
+
                 else
                 {
                     Console.WriteLine(messageType.ToString());
@@ -306,6 +295,7 @@ namespace Simple
 
     public class GameObjectState
     {
+        public int Id;
         public string Name;
         public string Type;
         public float X;
