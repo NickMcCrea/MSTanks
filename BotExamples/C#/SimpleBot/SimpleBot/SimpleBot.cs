@@ -8,37 +8,29 @@ using System.Threading;
 
 namespace Simple
 {
+    /// <summary>
+    /// Simple bot which performs some movements to demo API, then rotates the turret, turns the tank
+    /// and moves towards the center circle at 0,0.
+    /// </summary>
     public class SimpleBot
     {
 
-        //for tracking our movement command state
-        private enum TurretState
-        {
-            left,
-            right,
-            stop
-        }
-        private enum TurnState
-        {
-            left,
-            right,
-            stop
-            
-        }
-        private enum MoveState
-        {
-            forward,
-            backward,
-            stop
-        }
-        private TurretState currentTurretState = TurretState.stop;
-        private TurnState currentTurnState = TurnState.stop;
-        private MoveState currentMoveState = MoveState.stop;
 
         private string ipAddress = "127.0.0.1";
         private int port = 8052;
         private string tankName;
         private GameObjectState ourMostRecentState;
+        private enum state
+        {
+            actionOne,
+            waitOne,
+            actionTwo,
+            waitTwo,
+            actionThree,
+            done
+        }
+        private DateTime waitStart;
+        private state currentState = state.actionOne;
 
         //Our TCP client.
         private TcpClient client;
@@ -72,6 +64,7 @@ namespace Simple
 
             //conduct basic movement requests.
             BasicTest();
+
 
         }
 
@@ -219,61 +212,78 @@ namespace Simple
                 DecodeMessage((NetworkMessageType)nextMessage[0], nextMessage[1], nextMessage);
             }
 
+            if (ourMostRecentState != null)
+            {
 
-            //for basic behaviour and a demonstration of the simple maths required to orientate the tank,
-            //let's try to manoeovre ourselves to the center circle at 0,0
 
-            //if (ourMostRecentState != null)
-            //{
-            //    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, 0, 0);
+                if (currentState == state.actionOne)
+                {
 
-            //    //AimTurretToTargetHeading(targetHeading);
+                    //let's turn the tanks turret towards the center of the arena at 0,0
+                    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, 0, 0);
+                    SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnTurretToHeading, targetHeading));
+                    currentState = state.waitOne;
+                    waitStart = DateTime.Now;
+                }
 
-            //    AimBodyToTargetHeading(targetHeading);
-            //}
+                if (currentState == state.waitOne)
+                {
+                    if ((DateTime.Now - waitStart).TotalSeconds > 5)
+                    {
+                        currentState = state.actionTwo;
+                    }
+                }
 
+                if (currentState == state.actionTwo)
+                {
+                    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, 0, 0);
+                    SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnToHeading, targetHeading));
+                    currentState = state.waitTwo;
+                    waitStart = DateTime.Now;
+                }
+
+
+                if (currentState == state.waitTwo)
+                {
+                    if ((DateTime.Now - waitStart).TotalSeconds > 5)
+                    {
+                        currentState = state.actionThree;
+                    }
+                }
+
+                if (currentState == state.actionThree)
+                {
+                    float distance = CalculateDistance(ourMostRecentState.X, ourMostRecentState.Y, 0, 0);
+                    SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.moveForwardDistance, distance));
+                    currentState = state.done;
+                }
+            }
         }
 
-        private void AimBodyToTargetHeading(float targetHeading)
+        private float CalculateDistance(float ownX, float ownY, float otherX, float otherY)
         {
-            float diff = targetHeading - ourMostRecentState.Heading;
-            if (Math.Abs(diff) < 10)
-            {
-                SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurn));
-                currentTurnState = TurnState.stop;
-            }
-            else if (IsTurnLeft(ourMostRecentState.Heading, targetHeading) && currentTurnState != TurnState.left)
-            {
-                SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleLeft));
-                currentTurnState = TurnState.left;
-            }
-            else if (!IsTurnLeft(ourMostRecentState.Heading, targetHeading) && currentTurnState != TurnState.right)
-            {
-                SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleRight));
-                currentTurnState = TurnState.right;
-            }
+            float headingX = otherX - ownX;
+            float headingY = otherY - ownY;
+            return (float)Math.Sqrt((headingX * headingX) + (headingY * headingY));
         }
-
         private void AimTurretToTargetHeading(float targetHeading)
         {
             float turretDiff = targetHeading - ourMostRecentState.TurretHeading;
             if (Math.Abs(turretDiff) < 5)
             {
                 SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurret));
-                currentTurretState = TurretState.stop;
+
             }
-            else if (IsTurnLeft(ourMostRecentState.TurretHeading, targetHeading) && currentTurretState != TurretState.left)
+            else if (IsTurnLeft(ourMostRecentState.TurretHeading, targetHeading))
             {
                 SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleTurretLeft));
-                currentTurretState = TurretState.left;
+
             }
-            else if (!IsTurnLeft(ourMostRecentState.TurretHeading, targetHeading) && currentTurretState != TurretState.right)
+            else if (!IsTurnLeft(ourMostRecentState.TurretHeading, targetHeading))
             {
                 SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleTurretRight));
-                currentTurretState = TurretState.right;
             }
         }
-
         private float GetHeading(float x1, float y1, float x2, float y2)
         {
             float heading = (float)Math.Atan2(y2 - y1, x2 - x1);
@@ -282,12 +292,10 @@ namespace Simple
             return Math.Abs(heading);
 
         }
-
         private double RadianToDegree(double angle)
         {
             return angle * (180.0 / Math.PI);
         }
-     
         bool IsTurnLeft(float currentHeading, float desiredHeading)
         {
             float diff = desiredHeading - currentHeading;
@@ -306,7 +314,7 @@ namespace Simple
             Thread.Sleep(millisecondSleepTime);
 
             SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopMove));
-         
+
 
             SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleLeft));
             Thread.Sleep(millisecondSleepTime);
@@ -316,7 +324,7 @@ namespace Simple
             Thread.Sleep(millisecondSleepTime);
 
             SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurn));
-          
+
 
             SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleTurretLeft));
             Thread.Sleep(millisecondSleepTime);
@@ -325,7 +333,7 @@ namespace Simple
             Thread.Sleep(millisecondSleepTime);
 
             SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurret));
-          
+
 
             SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.fire));
 
@@ -342,6 +350,13 @@ namespace Simple
             string json = JsonConvert.SerializeObject(new { Name = name });
             byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(json);
             return AddTypeAndLengthToArray(clientMessageAsByteArray, (byte)NetworkMessageType.createTank);
+        }
+
+        public static byte[] CreateMovementMessage(NetworkMessageType type, float amount)
+        {
+            string json = JsonConvert.SerializeObject(new { Amount = amount });
+            byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(json);
+            return AddTypeAndLengthToArray(clientMessageAsByteArray, (byte)type);
         }
 
         public static byte[] AddTypeAndLengthToArray(byte[] bArray, byte type)
@@ -407,5 +422,8 @@ namespace Simple
         public int Health;
         public int Ammo;
     }
+
+
+
 
 }
