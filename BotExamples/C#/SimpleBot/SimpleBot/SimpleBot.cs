@@ -20,6 +20,12 @@ namespace Simple
         private int port = 8052;
         private string tankName;
         private GameObjectState ourMostRecentState;
+        private float randomTurretX = 0;
+        private float randomTurretY = 0;
+        private float randomX = 0;
+        private float randomY = 0;
+        private Random random;
+
         private enum state
         {
             actionOne,
@@ -27,6 +33,7 @@ namespace Simple
             actionTwo,
             waitTwo,
             actionThree,
+            waitThree,
             done
         }
         private DateTime waitStart;
@@ -47,6 +54,8 @@ namespace Simple
         public SimpleBot(string name = "SimpleBot1")
         {
             tankName = name;
+
+            random = new Random();
 
             incomingMessages = new Queue<byte[]>();
 
@@ -218,12 +227,15 @@ namespace Simple
 
                 if (currentState == state.actionOne)
                 {
+                    randomTurretX = random.Next(-100, 100);
+                    randomTurretY = random.Next(-100, 100);
 
                     //let's turn the tanks turret towards the center of the arena at 0,0
-                    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, 0, 0);
+                    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomTurretX, randomTurretY);
                     SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnTurretToHeading, targetHeading));
                     currentState = state.waitOne;
                     waitStart = DateTime.Now;
+                    Console.WriteLine("Moving turrot to aim at " + randomTurretX + "," + randomTurretY);
                 }
 
                 if (currentState == state.waitOne)
@@ -236,10 +248,14 @@ namespace Simple
 
                 if (currentState == state.actionTwo)
                 {
-                    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, 0, 0);
+                    randomX = random.Next(-100, 100);
+                    randomY = random.Next(-100, 100);
+
+                    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
                     SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnToHeading, targetHeading));
                     currentState = state.waitTwo;
                     waitStart = DateTime.Now;
+                    Console.WriteLine("Turning to aim at " + randomX + "," + randomY);
                 }
 
 
@@ -248,15 +264,30 @@ namespace Simple
                     if ((DateTime.Now - waitStart).TotalSeconds > 5)
                     {
                         currentState = state.actionThree;
+                       
                     }
                 }
 
                 if (currentState == state.actionThree)
                 {
-                    float distance = CalculateDistance(ourMostRecentState.X, ourMostRecentState.Y, 0, 0);
+                    float distance = CalculateDistance(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
                     SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.moveForwardDistance, distance));
-                    currentState = state.done;
+                    currentState = state.waitThree;
+                    waitStart = DateTime.Now;
+                    Console.WriteLine("Moving to " + randomX + "," + randomY);
                 }
+
+                if (currentState == state.waitThree)
+                {
+                    if ((DateTime.Now - waitStart).TotalSeconds > 5)
+                    {
+                        currentState = state.done;
+                        
+                    }
+                }
+
+                if (currentState == state.done)
+                    currentState = state.actionOne;
             }
         }
 
