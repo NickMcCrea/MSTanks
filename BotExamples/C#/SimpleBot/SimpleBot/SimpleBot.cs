@@ -221,74 +221,78 @@ namespace Simple
                 DecodeMessage((NetworkMessageType)nextMessage[0], nextMessage[1], nextMessage);
             }
 
+
             if (ourMostRecentState != null)
             {
-
-
-                if (currentState == state.actionOne)
-                {
-                    randomTurretX = random.Next(-100, 100);
-                    randomTurretY = random.Next(-100, 100);
-
-                    //let's turn the tanks turret towards the center of the arena at 0,0
-                    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomTurretX, randomTurretY);
-                    SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnTurretToHeading, targetHeading));
-                    currentState = state.waitOne;
-                    waitStart = DateTime.Now;
-                    Console.WriteLine("Moving turrot to aim at " + randomTurretX + "," + randomTurretY);
-                }
-
-                if (currentState == state.waitOne)
-                {
-                    if ((DateTime.Now - waitStart).TotalSeconds > 5)
-                    {
-                        currentState = state.actionTwo;
-                    }
-                }
-
-                if (currentState == state.actionTwo)
-                {
-                    randomX = random.Next(-100, 100);
-                    randomY = random.Next(-100, 100);
-
-                    float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
-                    SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnToHeading, targetHeading));
-                    currentState = state.waitTwo;
-                    waitStart = DateTime.Now;
-                    Console.WriteLine("Turning to aim at " + randomX + "," + randomY);
-                }
-
-
-                if (currentState == state.waitTwo)
-                {
-                    if ((DateTime.Now - waitStart).TotalSeconds > 5)
-                    {
-                        currentState = state.actionThree;
-                       
-                    }
-                }
-
-                if (currentState == state.actionThree)
-                {
-                    float distance = CalculateDistance(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
-                    SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.moveForwardDistance, distance));
-                    currentState = state.waitThree;
-                    waitStart = DateTime.Now;
-                    Console.WriteLine("Moving to " + randomX + "," + randomY);
-                }
-
-                if (currentState == state.waitThree)
-                {
-                    if ((DateTime.Now - waitStart).TotalSeconds > 5)
-                    {
-                        currentState = state.done;
-                        
-                    }
-                }
-
-                if (currentState == state.done)
-                    currentState = state.actionOne;
+                UpdateStateMachine();
             }
+        }
+
+        private void UpdateStateMachine()
+        {
+            if (currentState == state.actionOne)
+            {
+                randomTurretX = random.Next(-100, 100);
+                randomTurretY = random.Next(-100, 100);
+
+                //let's turn the tanks turret towards the center of the arena at 0,0
+                float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomTurretX, randomTurretY);
+                SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnTurretToHeading, targetHeading));
+                currentState = state.waitOne;
+                waitStart = DateTime.Now;
+                Console.WriteLine("Moving turrot to aim at " + randomTurretX + "," + randomTurretY);
+            }
+
+            if (currentState == state.waitOne)
+            {
+                if ((DateTime.Now - waitStart).TotalSeconds > 5)
+                {
+                    currentState = state.actionTwo;
+                }
+            }
+
+            if (currentState == state.actionTwo)
+            {
+                randomX = random.Next(-100, 100);
+                randomY = random.Next(-100, 100);
+
+                float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
+                SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnToHeading, targetHeading));
+                currentState = state.waitTwo;
+                waitStart = DateTime.Now;
+                Console.WriteLine("Turning to aim at " + randomX + "," + randomY);
+            }
+
+
+            if (currentState == state.waitTwo)
+            {
+                if ((DateTime.Now - waitStart).TotalSeconds > 5)
+                {
+                    currentState = state.actionThree;
+
+                }
+            }
+
+            if (currentState == state.actionThree)
+            {
+                float distance = CalculateDistance(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
+                SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.moveForwardDistance, distance));
+                currentState = state.waitThree;
+                waitStart = DateTime.Now;
+                Console.WriteLine("Moving to " + randomX + "," + randomY);
+            }
+
+            if (currentState == state.waitThree)
+            {
+                if ((DateTime.Now - waitStart).TotalSeconds > 5)
+                {
+                    currentState = state.done;
+
+                }
+            }
+
+            if (currentState == state.done)
+                currentState = state.actionOne;
         }
 
         private float CalculateDistance(float ownX, float ownY, float otherX, float otherY)
@@ -297,6 +301,7 @@ namespace Simple
             float headingY = otherY - ownY;
             return (float)Math.Sqrt((headingX * headingX) + (headingY * headingY));
         }
+
         private void AimTurretToTargetHeading(float targetHeading)
         {
             float turretDiff = targetHeading - ourMostRecentState.TurretHeading;
@@ -315,6 +320,7 @@ namespace Simple
                 SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleTurretRight));
             }
         }
+
         private float GetHeading(float x1, float y1, float x2, float y2)
         {
             float heading = (float)Math.Atan2(y2 - y1, x2 - x1);
@@ -323,10 +329,12 @@ namespace Simple
             return Math.Abs(heading);
 
         }
+
         private double RadianToDegree(double angle)
         {
             return angle * (180.0 / Math.PI);
         }
+
         bool IsTurnLeft(float currentHeading, float desiredHeading)
         {
             float diff = desiredHeading - currentHeading;
