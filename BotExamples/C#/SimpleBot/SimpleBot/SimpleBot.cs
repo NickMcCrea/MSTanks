@@ -19,25 +19,9 @@ namespace Simple
         private string ipAddress = "127.0.0.1";
         private int port = 8052;
         private string tankName;
-        private GameObjectState ourMostRecentState;
-        private float randomTurretX = 0;
-        private float randomTurretY = 0;
-        private float randomX = 0;
-        private float randomY = 0;
+        private GameObjectState ourMostRecentState;    
         private Random random;
-
-        private enum state
-        {
-            actionOne,
-            waitOne,
-            actionTwo,
-            waitTwo,
-            actionThree,
-            waitThree,
-            done
-        }
-        private DateTime waitStart;
-        private state currentState = state.actionOne;
+        private bool testMovementsPerformed = false;
 
         //Our TCP client.
         private TcpClient client;
@@ -72,10 +56,52 @@ namespace Simple
             SendMessage(MessageFactory.CreateTankMessage(tankName));
 
             //conduct basic movement requests.
-            BasicTest();
+            DoAPITest();
 
 
         }
+
+
+        private void DoAPITest()
+        {
+            int millisecondSleepTime = 500;
+            Thread.Sleep(millisecondSleepTime);
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleForward));
+            Thread.Sleep(millisecondSleepTime);
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleReverse));
+            Thread.Sleep(millisecondSleepTime);
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopMove));
+
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleLeft));
+            Thread.Sleep(millisecondSleepTime);
+
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleRight));
+            Thread.Sleep(millisecondSleepTime);
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurn));
+
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleTurretLeft));
+            Thread.Sleep(millisecondSleepTime);
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleTurretRight));
+            Thread.Sleep(millisecondSleepTime);
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurret));
+
+
+            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.fire));
+
+
+            
+
+        }
+
 
         private void ConnectToTcpServer()
         {
@@ -222,77 +248,37 @@ namespace Simple
             }
 
 
-            if (ourMostRecentState != null)
+            //wait until we get our first state update from the server
+            if(ourMostRecentState != null && !testMovementsPerformed)
             {
-                UpdateStateMachine();
-            }
-        }
+                //let's turn the tanks turret towards a random point.
+                var randomTurretX = random.Next(-100, 100);
+                var randomTurretY = random.Next(-100, 100);
 
-        private void UpdateStateMachine()
-        {
-            if (currentState == state.actionOne)
-            {
-                randomTurretX = random.Next(-100, 100);
-                randomTurretY = random.Next(-100, 100);
-
-                //let's turn the tanks turret towards the center of the arena at 0,0
+                //let's turn the tanks turret towards a random point.
                 float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomTurretX, randomTurretY);
                 SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnTurretToHeading, targetHeading));
-                currentState = state.waitOne;
-                waitStart = DateTime.Now;
-                Console.WriteLine("Moving turrot to aim at " + randomTurretX + "," + randomTurretY);
-            }
-
-            if (currentState == state.waitOne)
-            {
-                if ((DateTime.Now - waitStart).TotalSeconds > 5)
-                {
-                    currentState = state.actionTwo;
-                }
-            }
-
-            if (currentState == state.actionTwo)
-            {
-                randomX = random.Next(-100, 100);
-                randomY = random.Next(-100, 100);
-
-                float targetHeading = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
-                SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnToHeading, targetHeading));
-                currentState = state.waitTwo;
-                waitStart = DateTime.Now;
-                Console.WriteLine("Turning to aim at " + randomX + "," + randomY);
-            }
 
 
-            if (currentState == state.waitTwo)
-            {
-                if ((DateTime.Now - waitStart).TotalSeconds > 5)
-                {
-                    currentState = state.actionThree;
+                Thread.Sleep(2000);
 
-                }
-            }
 
-            if (currentState == state.actionThree)
-            {
+                //now let's turn the whole vehicle towards a different random point.
+                var randomX = random.Next(-100, 100);
+                var randomY = random.Next(-100, 100);
+                float targetHeading2 = GetHeading(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
+                SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.turnToHeading, targetHeading2));
+                Thread.Sleep(2000);
+
+
+
+                //now let's move to that point.
                 float distance = CalculateDistance(ourMostRecentState.X, ourMostRecentState.Y, randomX, randomY);
                 SendMessage(MessageFactory.CreateMovementMessage(NetworkMessageType.moveForwardDistance, distance));
-                currentState = state.waitThree;
-                waitStart = DateTime.Now;
-                Console.WriteLine("Moving to " + randomX + "," + randomY);
+
+                testMovementsPerformed = true;
             }
 
-            if (currentState == state.waitThree)
-            {
-                if ((DateTime.Now - waitStart).TotalSeconds > 5)
-                {
-                    currentState = state.done;
-
-                }
-            }
-
-            if (currentState == state.done)
-                currentState = state.actionOne;
         }
 
         private float CalculateDistance(float ownX, float ownY, float otherX, float otherY)
@@ -341,43 +327,7 @@ namespace Simple
             return diff > 0 ? diff > 180 : diff >= -180;
         }
 
-        private void BasicTest()
-        {
-            int millisecondSleepTime = 500;
-            Thread.Sleep(millisecondSleepTime);
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleForward));
-            Thread.Sleep(millisecondSleepTime);
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleReverse));
-            Thread.Sleep(millisecondSleepTime);
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopMove));
-
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleLeft));
-            Thread.Sleep(millisecondSleepTime);
-
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleRight));
-            Thread.Sleep(millisecondSleepTime);
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurn));
-
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleTurretLeft));
-            Thread.Sleep(millisecondSleepTime);
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.toggleTurretRight));
-            Thread.Sleep(millisecondSleepTime);
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.stopTurret));
-
-
-            SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.fire));
-
-        }
-
+      
     }
 
     public static class MessageFactory
