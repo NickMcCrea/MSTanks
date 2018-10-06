@@ -187,6 +187,7 @@ namespace Simple
                     var payload = new byte[payloadLength];
                     Array.Copy(bytes, 2, payload, 0, payloadLength);
                     jsonPayload = Encoding.ASCII.GetString(payload);
+                    
                 }
 
                 if (messageType == NetworkMessageType.test)
@@ -206,6 +207,7 @@ namespace Simple
                 else
                 {
                     Console.WriteLine(messageType.ToString());
+                    Console.WriteLine(jsonPayload);
                 }
 
             }
@@ -396,9 +398,10 @@ namespace Simple
         destroyed = 22,
         enteredGoal = 23,
         kill = 24,
-        snitchCollected = 25,
-        snitchAppeared = 26,
-        gameTimeUpdate = 27
+        snitchAppeared = 25,
+        gameTimeUpdate = 26,
+        hitDetected = 27,
+        successfulHit =28
 
     }
 
