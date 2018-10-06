@@ -19,7 +19,7 @@ namespace Simple
         private string ipAddress = "127.0.0.1";
         private int port = 8052;
         private string tankName;
-        private GameObjectState ourMostRecentState;    
+        private GameObjectState ourMostRecentState;
         private Random random;
         private bool testMovementsPerformed = false;
 
@@ -98,7 +98,7 @@ namespace Simple
             SendMessage(MessageFactory.CreateZeroPayloadMessage(NetworkMessageType.fire));
 
 
-            
+
 
         }
 
@@ -249,7 +249,7 @@ namespace Simple
 
 
             //wait until we get our first state update from the server
-            if(ourMostRecentState != null && !testMovementsPerformed)
+            if (ourMostRecentState != null && !testMovementsPerformed)
             {
                 //let's turn the tanks turret towards a random point.
                 var randomTurretX = random.Next(-100, 100);
@@ -327,7 +327,7 @@ namespace Simple
             return diff > 0 ? diff > 180 : diff >= -180;
         }
 
-      
+
     }
 
     public static class MessageFactory
@@ -395,7 +395,10 @@ namespace Simple
         snitchPickup = 21,
         destroyed = 22,
         enteredGoal = 23,
-        kill = 24
+        kill = 24,
+        snitchCollected = 25,
+        snitchAppeared = 26,
+        gameTimeUpdate = 27
 
     }
 
