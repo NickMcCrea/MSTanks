@@ -1,3 +1,9 @@
 
 BotExamples/C#/SimpleBot/SimpleBot/obj/*
 BotExamples/C#/SimpleBot/SimpleBot/bin/*
+
+BotExamples/Scala/ScalaBot/\.idea/
+
+BotExamples/Scala/ScalaBot/target/
+
+BotExamples/Scala/ScalaBot/project/
