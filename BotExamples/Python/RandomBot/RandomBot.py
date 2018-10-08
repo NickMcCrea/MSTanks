@@ -90,10 +90,6 @@ class ServerComms(object):
 	ServerSocket = None
 	MessageTypes = ServerMessageTypes()
 	
-	TEST = 0
-	CREATETANK = 1
-	DESPANTANK = 2
-	FIRE = 3
 	
 	def __init__(self, hostname, port):
 		self.ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -113,6 +109,7 @@ class ServerComms(object):
 			messagePayload = None
 		else:
 			messageData = self.ServerSocket.recv(messageLen)
+			logging.debug("*** {}".format(messageData))
 			messagePayload = json.loads(messageData)
 			
 		logging.debug('Turned message {} into type {} payload {}'.format(binascii.hexlify(messageData), self.MessageTypes.toString(messageType), messagePayload))
