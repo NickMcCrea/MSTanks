@@ -1,4 +1,11 @@
 
 BotExamples/C#/SimpleBot/SimpleBot/obj/*
 BotExamples/C#/SimpleBot/SimpleBot/bin/*
-BotExamples/Java/simplebot.iml
+BotExamples/Java/\.idea/
+BotExamples/Java/target/
+
+BotExamples/Scala/ScalaBot/\.idea/
+
+BotExamples/Scala/ScalaBot/target/
+
+BotExamples/Scala/ScalaBot/project/
