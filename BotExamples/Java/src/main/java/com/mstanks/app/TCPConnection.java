@@ -4,17 +4,16 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Arrays;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.logging.log4j.*;
-
-import static java.net.StandardSocketOptions.SO_RCVBUF;
+import com.google.common.primitives.Bytes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TCPConnection implements Runnable  {
 
-    private static Logger log = LogManager.getLogger(TCPConnection.class);
+    static final Logger log = LoggerFactory.getLogger(TCPConnection.class);
     private volatile boolean connected = false;
     private String host;
     private int port;
@@ -22,6 +21,7 @@ public class TCPConnection implements Runnable  {
     private ConcurrentLinkedQueue<byte[]> incommingMessages;
     private ConcurrentLinkedQueue<byte[]> outgoingMessages;
     private volatile boolean quit = false;
+    private volatile boolean reading = false;
 
     public TCPConnection(String host, int port, ConcurrentLinkedQueue<byte[]> incomingMessages, ConcurrentLinkedQueue<byte[]> outgoingMessages){
         this.host = host;
@@ -33,12 +33,11 @@ public class TCPConnection implements Runnable  {
     public void connect(){
         try {
             socket = AsynchronousSocketChannel.open();
-            socket.setOption(SO_RCVBUF, 512);
             //try to connect to the server side
             socket.connect( new InetSocketAddress(host, port), socket, new CompletionHandler<>() {
                 @Override
                 public void completed(Void result, AsynchronousSocketChannel channel ) {
-                    log.info("Socket successfully setup.");
+                    log.debug("Socket successfully setup.");
                     connected = true;
                     process();
                 }
@@ -46,39 +45,73 @@ public class TCPConnection implements Runnable  {
                 @Override
                 public void failed(Throwable exc, AsynchronousSocketChannel channel) {
                     connected = false;
-                    log.fatal("Unable to connect to socket");
+                    log.error("Unable to connect to socket");
                 }
 
             });
         }catch (IOException ioe){
-            log.fatal("Socket failed: " + ioe.getMessage());
+            log.error("Socket failed: " + ioe.getMessage());
             //not going to do anything special here..
         }
     }
 
+
+
     private void read(){
-        ByteBuffer buffer = ByteBuffer.allocate(512);
+        ByteBuffer buff = ByteBuffer.allocate(400); //bigger than we should ever need
+        buff.limit(2); //limit 2 for header
+
+        if(reading) return;
 
         try {
-            socket.read(buffer, socket, new CompletionHandler<Integer, AsynchronousSocketChannel>() {
+            reading = true;
+            socket.read(buff, socket, new CompletionHandler<Integer, AsynchronousSocketChannel>() {
+                byte[] header;
+                int payloadLength;
+                byte[] payload;
+                byte[] completePacket;
 
                 @Override
                 public void completed(Integer result, AsynchronousSocketChannel channel) {
                     //message is read from server
                     if (result < 0) {
-                        log.info("end of result.");
-                        buffer.clear();
+                        log.debug("end of header result.");
+                        buff.clear();
                         // handle unexpected connection close
                     }
-                    else if (buffer.hasRemaining()) {
+                    else if (buff.hasRemaining()) {
                         // repeat the call with the same CompletionHandler
-                        log.info("result: " + result.toString());
-                        channel.read(buffer, channel, this);
+                        try{
+                            channel.read(buff, channel, this);
+                        }catch(ReadPendingException rpe){
+                            //log.warn("Still awaiting completion of previous read.");
+                        }
                     }
                     else {
-                        log.info("Cannot read anymore into 512byte buffer, returning message.");
-                        incommingMessages.add(buffer.rewind().array());
-                        buffer.clear();
+                        if(buff.limit() == 2){ //header check
+                            log.debug("Received " + (2-buff.remaining())+ " bytes as header, will determine size of payload.");
+                            byte[] headBuff = buff.flip().array();
+                            payloadLength = Byte.toUnsignedInt(headBuff[1]);
+                            header = Arrays.copyOf(headBuff,2);
+                            log.debug(Arrays.toString(header));
+                            log.debug("Payload to be " + payloadLength + "bytes.");
+                            buff.clear(); //clear what we've read so far.
+                            buff.limit(payloadLength); //set limit to payload
+                            try{
+                                channel.read(buff, channel, this);
+                            }catch(ReadPendingException rpe){
+                                //log.warn("Still awaiting completion of previous read.");
+                            }
+                        }else{ //payload check
+                            log.debug("Payload received. (" + buff.position() + ")") ;
+                            byte[] payloadArr = buff.flip().array();
+                            payload = Arrays.copyOf(payloadArr,payloadLength);
+                            completePacket = Bytes.concat(header, payload);
+                            incommingMessages.add(completePacket);
+                            payloadLength = 0;
+                            buff.clear();
+                            reading = false;
+                        }
                     }
 
                 }
@@ -87,6 +120,7 @@ public class TCPConnection implements Runnable  {
                     log.warn("fail to read message from server");
                     //we should do some work with exc to determine exception and if connection lost/recoverable
                     connected = false;
+                    reading = false;
                 }
             });
 
@@ -94,6 +128,8 @@ public class TCPConnection implements Runnable  {
             //log.warn("Still awaiting completion of previous read.");
         }
     }
+
+
 
     public void write() {
         ByteBuffer buffer = ByteBuffer.allocate(512);
@@ -109,7 +145,7 @@ public class TCPConnection implements Runnable  {
             socket.write(buffer, socket, new CompletionHandler<Integer, AsynchronousSocketChannel>() {
                 @Override
                 public void completed(Integer result, AsynchronousSocketChannel channel) {
-                    //log.info("Whooosh, there goes that message!");
+                    //log.debug("Whooosh, there goes that message!");
                     outgoingMessages.remove(); //remove the message now
                 }
 

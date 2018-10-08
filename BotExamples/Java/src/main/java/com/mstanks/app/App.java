@@ -1,64 +1,49 @@
 package com.mstanks.app;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.Configurator;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.sound.sampled.AudioFormat;
-import java.io.FileInputStream;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.LogManager;
 
 public class App implements Runnable
 {
-    private static Logger log = LogManager.getLogger(App.class);
+    static final Logger log = LoggerFactory.getLogger(App.class);
 
     private ConcurrentLinkedQueue<byte[]> incomingMessages;
-    private ConcurrentLinkedQueue<byte[]> outgoingMessages;
-    private TCPConnection tcpConn;
+    private TCPConnectionSimple tcpConn;
     private String host;
     private int port;
     private boolean quit = false;
+    private GameObjectState ourState;
+    private String tankName;
 
     public App(){
         setup();
     }
 
     private void setup(){
-        Properties props = new Properties();
-        InputStream in = App.class.getResourceAsStream("/config.properties");
-        if (Objects.isNull(in)){
-            log.warn("No config.properties found on class path; using defaults");
-            host = "localhost";
-            port = 8052;
-        }else {
 
-            log.info("Loading properties file.");
-            try (in) {
-                props.load(in);
-
-                host = props.getProperty("host", "localhost");
-                port = Integer.getInteger(props.getProperty("port", "8052"));
-            } catch (IOException ioe) {
-                log.warn("Unable to set config proprerties, defaulting.");
-                host = "localhost";
-                port = 8052;
-            }
-
-        }
+        host = System.getProperty("host", "localhost");
+        port = Integer.getInteger("port", 8052);
+        tankName = System.getProperty("name", "JavaBot");
+        log.warn(System.getProperties().toString());
         incomingMessages = new ConcurrentLinkedQueue<>();
-        outgoingMessages = new ConcurrentLinkedQueue<>();
-
-        tcpConn =  new TCPConnection(host, port, incomingMessages, outgoingMessages);
+        tcpConn =  new TCPConnectionSimple(host, port, incomingMessages);
         tcpConn.connect();
-        log.info("App setup.");
+        log.debug("App setup.");
     }
 
-    private void process(){
+    private void process() throws InterruptedException {
 
         if(!incomingMessages.isEmpty()){
             byte[] message = incomingMessages.poll();
@@ -66,18 +51,62 @@ public class App implements Runnable
             //do something with decoded message/info
             //doSomeLogic();
         }
-        testAction();
+
+        //wait until we get our first state update from the server
+        if (ourState != null)
+        {
+            //let's turn the tanks turret towards a random point.
+            Random r = new Random();
+            int randomTurretX = TankUtils.getNext(-70, 70);
+            int randomTurretY = TankUtils.getNext(-100, 100);
+
+            //let's turn the tanks turret towards a random point.
+            float targetHeading = TankUtils.getHeading(ourState.x, ourState.y, randomTurretX, randomTurretY);
+            sendMessage(MessageFactory.createMovementMessage(MessageFactory.NetworkMessageType.TURN_TURRET_TO_HEADING, targetHeading));
+
+            Thread.sleep(200);
+
+
+            //now let's turn the whole vehicle towards a different random point.
+            int randomX = TankUtils.getNext(-70, 70);
+            int randomY = TankUtils.getNext(-100, 100);
+            float targetHeading2 = TankUtils.getHeading(ourState.x, ourState.y, randomX, randomY);
+            sendMessage(MessageFactory.createMovementMessage(MessageFactory.NetworkMessageType.TURN_TO_HEADING, targetHeading));
+
+            Thread.sleep(200);
+
+            //now let's move to that point.
+            float distance = TankUtils.calculateDistance(ourState.x, ourState.y, randomX, randomY);
+            sendMessage(MessageFactory.createMovementMessage(MessageFactory.NetworkMessageType.MOVE_FORWARD_DISTANCE, distance));
+
+            Thread.sleep(200);
+        }
 
     }
+
     private void createTestTank(){
-        byte[] message = MessageFactory.createTankMessage("test", "");
-        outgoingMessages.add(message);
+        byte[] message = MessageFactory.createTankMessage(tankName);
+        tcpConn.write(message);
     }
-    private void testAction(){
-        Random r = new Random();
-        int nAction = r.nextInt((12-3)+1)+3;
-        sendMessage(MessageFactory.NetworkMessageType.get(nAction), "");
 
+
+    private void aimTurretToTargetHeading(float targetHeading)
+    {
+        float turretDiff = targetHeading - ourState.turretHeading;
+        if (Math.abs(turretDiff) < 5)
+        {
+            sendMessage(MessageFactory.createMessage(MessageFactory.NetworkMessageType.STOP_TURRET));
+
+        }
+        else if (TankUtils.isTurnLeft(ourState.turretHeading, targetHeading))
+        {
+            sendMessage(MessageFactory.createMessage(MessageFactory.NetworkMessageType.TOGGLE_TURRET_LEFT));
+
+        }
+        else if (!TankUtils.isTurnLeft(ourState.turretHeading, targetHeading))
+        {
+            sendMessage(MessageFactory.createMessage(MessageFactory.NetworkMessageType.TOGGLE_TURRET_RIGHT));
+        }
     }
 
     private void decodeMessage(byte[] message){
@@ -90,28 +119,36 @@ public class App implements Runnable
             case OBJECT_UPDATE: {
                 decodeGameState(jsonString);
             }
+            default:
+                log.debug(String.format("Received message of type %s", mType));
             //case OTHER CASES
 
         }
     }
 
-    private void sendMessage(MessageFactory.NetworkMessageType action, String msg){
-        byte[] message = MessageFactory.createMessage(action);
-        outgoingMessages.add(message);
+    private void sendMessage(byte[] message){
+        log.debug("sending message");
+        tcpConn.write(message);
     }
 
     private GameObjectState decodeGameState(String state){
+        log.debug("Decode game state: " + state);
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true); //required as JSON in C# style casing
+        objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+        //required as JSON in C# style casing
         try {
             GameObjectState gState = objectMapper.readValue(state, GameObjectState.class);
-            log.info(gState);
+            log.debug(gState.toString());
+            if(gState.name.equals(tankName)){
+                ourState = gState;
+            }
             return gState;
         } catch (IOException e) {
             log.warn("Unable to parse game state: " + e.getMessage());
             return null;
         }
     }
+
 
 
     private void start(){
@@ -121,18 +158,20 @@ public class App implements Runnable
     }
 
 
+
     @Override
     public void run() {
+        tcpConn.start();
         try {
             while(!tcpConn.isConnected()){
                 Thread.sleep(100);
-                log.info("Waiting for connection setup");
+                log.debug("Waiting for connection setup");
             }
 
             createTestTank();
             while (tcpConn.isConnected() && !quit) {
 
-                Thread.sleep(100);
+                Thread.sleep(50);
                 process();
             }
         }catch(InterruptedException ie){
