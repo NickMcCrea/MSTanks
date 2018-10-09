@@ -1,6 +1,8 @@
 
 BotExamples/C#/SimpleBot/SimpleBot/obj/*
 BotExamples/C#/SimpleBot/SimpleBot/bin/*
+BotExamples/Java/\.idea/
+BotExamples/Java/target/
 
 BotExamples/Scala/ScalaBot/\.idea/
 
