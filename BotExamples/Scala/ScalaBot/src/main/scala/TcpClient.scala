@@ -40,7 +40,6 @@ class TcpClient(remote: InetSocketAddress, listener: ActorRef) extends Actor wit
         // O/S buffer was full
 
         case Received(data) ⇒
-          println(s""" {$c} -> ${data(0)}""")
            toTankMessage(data).foreach {
              listener !
            }
