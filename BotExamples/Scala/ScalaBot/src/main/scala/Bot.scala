@@ -3,10 +3,10 @@ import TankMessage._
 import akka.dispatch.forkjoin.ThreadLocalRandom
 
 object Bot {
-  def props = Props(classOf[Bot])
+  def props(name:String) = Props(classOf[Bot])
 }
 
-class Bot extends Actor with ActorLogging {
+class Bot(name:String) extends Actor with ActorLogging {
   val ran =  ThreadLocalRandom.current()
 
   override def receive: Receive = {
@@ -14,7 +14,7 @@ class Bot extends Actor with ActorLogging {
     case "Start" =>
       val TcpClient: ActorRef = sender()
 
-      TcpClient ! toByteString(TankMessage("createTank", Some(CreateTankPayload("ScalaBot"))))
+      TcpClient ! toByteString(TankMessage("createTank", Some(CreateTankPayload(name))))
 
       context become {
 
