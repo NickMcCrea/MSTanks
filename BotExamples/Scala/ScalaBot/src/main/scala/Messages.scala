@@ -1,9 +1,12 @@
 import java.nio.charset.StandardCharsets
+import java.time.LocalDate
 
 import akka.util.ByteString
+
 import scala.language.implicitConversions
 import spray.json._
 
+import scala.collection.mutable.ArrayBuffer
 
 sealed trait Payload
 
@@ -11,14 +14,18 @@ final case class CreateTankPayload(Name: String) extends Payload
 
 final case class AmountPayload(Amount: Int) extends Payload
 
-final case class IDPayload(Id:String) extends Payload
-final case class UpdatePayload(Id:Int, Name:String, Type:String,X:Float, Y:Float,Heading:Float ,TurretHeading:Float,Health:Int, Ammo:Int ) extends Payload
+final case class IDPayload(Id:Int) extends Payload
+
+final case class UpdatePayload(Id: Int, Name: String, Type: String, X: Float, Y: Float, Heading: Float, TurretHeading: Float, Health: Int, Ammo: Int) extends Payload
+
+final case class TimePayload(Time:Int) extends Payload
 
 object MyJsonProtocol extends DefaultJsonProtocol {
   implicit val CreateTankPayloadFormat = jsonFormat1(CreateTankPayload)
   implicit val AmountPayloadFormat = jsonFormat1(AmountPayload)
   implicit val IDPayloadFormat = jsonFormat1(IDPayload)
   implicit val UpdatePayloadFormat = jsonFormat9(UpdatePayload)
+  implicit val TimePayloadFormat = jsonFormat1(TimePayload)
 }
 
 
@@ -78,28 +85,39 @@ object TankMessage {
 
   }
 
-  def toTankMessage(data: ByteString): TankMessage = {
+  def toTankMessage(data: ByteString): List[TankMessage] = {
+    
+    /*
+    TODO get rid off this mutabile coding style
+      It works well but there must be a more idomatic way to do this
+    */
 
     def BtoUInt(b: Byte) = b & 0xFF
 
     import MyJsonProtocol._
 
-    data(0) match {
-      case 18 =>
-        //there may be more msg in the data but i only take the first one
-        val jsonString = data.drop(2).take(BtoUInt(data(1))).decodeString(StandardCharsets.US_ASCII)
-        val payload = jsonString.parseJson.convertTo[UpdatePayload]
-        TankMessage(IntToMessageType(18), Some(payload))
-      case 21 =>
-        val payload = data.drop(2).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[IDPayload]
-        TankMessage(IntToMessageType(21), Some(payload))
-      case 26 =>
-        println(data)
-        TankMessage("Test")
-      case c => TankMessage(IntToMessageType(c))
-
+    var c = 0
+    var msgs = ArrayBuffer[TankMessage]()
+    while (c < data.length) {
+      data(c) match {
+        case 18 =>
+          val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[UpdatePayload]
+          msgs.append(TankMessage(IntToMessageType(18), Some(payload)))
+          c += BtoUInt(data(c + 1)) + 2
+        case 21 =>
+          val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[IDPayload]
+          msgs.append(TankMessage(IntToMessageType(21), Some(payload)))
+          c += BtoUInt(data(c + 1)) + 2
+        case 26 =>
+          val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[TimePayload]
+          msgs.append(TankMessage(IntToMessageType(26), Some(payload)))
+          c += BtoUInt(data(c + 1)) + 2
+        case mT=>
+          msgs.append(TankMessage(IntToMessageType(mT.toInt)))
+          c += 2
+      }
     }
-
+    msgs.toList
   }
 
 }
