@@ -23,7 +23,8 @@ object Main {
   
   def main(args: Array[String]): Unit = {
      val argM:Map[String,String] = parseArgs(args)
-     println(argM)
+     println(s"Arguments ${argM}")
+     
      
      val system = ActorSystem("something")
      val bot = system.actorOf(Bot.props(argM.getOrElse("name", "ScalaBot")), "Bot")

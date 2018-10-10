@@ -86,6 +86,11 @@ object TankMessage {
   }
 
   def toTankMessage(data: ByteString): List[TankMessage] = {
+    
+    /*
+    TODO get rid off this mutabile coding style
+      It works well but there must be a more idomatic way to do this
+    */
 
     def BtoUInt(b: Byte) = b & 0xFF
 
@@ -101,14 +106,14 @@ object TankMessage {
           c += BtoUInt(data(c + 1)) + 2
         case 21 =>
           val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[IDPayload]
-          TankMessage(IntToMessageType(21), Some(payload))
+          msgs.append(TankMessage(IntToMessageType(21), Some(payload)))
           c += BtoUInt(data(c + 1)) + 2
         case 26 =>
-          val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[IDPayload]
-          TankMessage(IntToMessageType(26), Some(payload))
+          val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[TimePayload]
+          msgs.append(TankMessage(IntToMessageType(26), Some(payload)))
           c += BtoUInt(data(c + 1)) + 2
-        case mT: Byte =>
-          TankMessage(IntToMessageType(mT.toInt))
+        case mT=>
+          msgs.append(TankMessage(IntToMessageType(mT.toInt)))
           c += 2
       }
     }

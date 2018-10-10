@@ -3,7 +3,7 @@ import TankMessage._
 import akka.dispatch.forkjoin.ThreadLocalRandom
 
 object Bot {
-  def props(name:String) = Props(classOf[Bot])
+  def props(name:String) = Props(classOf[Bot], name)
 }
 
 class Bot(name:String) extends Actor with ActorLogging {
@@ -24,7 +24,7 @@ class Bot(name:String) extends Actor with ActorLogging {
           TcpClient ! toByteString(TankMessage(IntToMessageType(ran.nextInt(3,9))))
         case msg: TankMessage =>
           //TODO this is where your game object updates will go, you might decide its for logic as well
-          log.info(msg.oPayload.getOrElse(msg.messageType).toString)
+          log.info(msg.toString)
         case "Stop" =>
           log.info("stoping")
           context.system.terminate()
