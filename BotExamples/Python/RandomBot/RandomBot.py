@@ -107,7 +107,7 @@ class ServerComms(object):
 		messageLen = struct.unpack('>B', messageLenRaw)[0]
 		
 		if messageLen == 0:
-			messageData = None
+			messageData = ""
 			messagePayload = None
 		else:
 			messageData = self.ServerSocket.recv(messageLen)
