@@ -107,14 +107,17 @@ class ServerComms(object):
 		messageLen = struct.unpack('>B', messageLenRaw)[0]
 		
 		if messageLen == 0:
-			messageData = ""
+			messageData = bytearray()
 			messagePayload = None
 		else:
 			messageData = self.ServerSocket.recv(messageLen)
 			logging.debug("*** {}".format(messageData))
 			messagePayload = json.loads(messageData.decode('utf-8'))
 			
-		logging.debug('Turned message {} into type {} payload {}'.format(binascii.hexlify(messageData), self.MessageTypes.toString(messageType), messagePayload))
+		logging.debug('Turned message {} into type {} payload {}'.format(
+			binascii.hexlify(messageData),
+			self.MessageTypes.toString(messageType),
+			messagePayload))
 		return messagePayload
 		
 	def sendMessage(self, messageType=None, messagePayload=None):
@@ -136,7 +139,10 @@ class ServerComms(object):
 		else:
 			message.append(0)
 		
-		logging.debug('Turned message type {} payload {} into {}'.format(self.MessageTypes.toString(messageType), messagePayload, binascii.hexlify(message)))
+		logging.debug('Turned message type {} payload {} into {}'.format(
+			self.MessageTypes.toString(messageType),
+			messagePayload,
+			binascii.hexlify(message)))
 		return self.ServerSocket.send(message)
 
 
