@@ -58,6 +58,7 @@ public class TCPConnectionSimple implements Runnable {
 
                 int payloadLength = Byte.toUnsignedInt(header[1]);
                 log.debug(String.format("Packet detected, payload length of %d.", payloadLength));
+
                 byte[] payload = new byte[0];
                 if (payloadLength > 0) {
                     payload = new byte[payloadLength];
