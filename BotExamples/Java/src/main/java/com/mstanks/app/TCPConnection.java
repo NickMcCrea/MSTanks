@@ -34,7 +34,7 @@ public class TCPConnection implements Runnable  {
         try {
             socket = AsynchronousSocketChannel.open();
             //try to connect to the server side
-            socket.connect( new InetSocketAddress(host, port), socket, new CompletionHandler<>() {
+            socket.connect( new InetSocketAddress(host, port), socket, new CompletionHandler<Void, AsynchronousSocketChannel>() {
                 @Override
                 public void completed(Void result, AsynchronousSocketChannel channel ) {
                     log.debug("Socket successfully setup.");
@@ -90,7 +90,7 @@ public class TCPConnection implements Runnable  {
                     else {
                         if(buff.limit() == 2){ //header check
                             log.debug("Received " + (2-buff.remaining())+ " bytes as header, will determine size of payload.");
-                            byte[] headBuff = buff.flip().array();
+                            byte[] headBuff = (byte[]) buff.flip().array();
                             payloadLength = Byte.toUnsignedInt(headBuff[1]);
                             header = Arrays.copyOf(headBuff,2);
                             log.debug(Arrays.toString(header));
@@ -104,7 +104,7 @@ public class TCPConnection implements Runnable  {
                             }
                         }else{ //payload check
                             log.debug("Payload received. (" + buff.position() + ")") ;
-                            byte[] payloadArr = buff.flip().array();
+                            byte[] payloadArr = (byte[])  buff.flip().array();
                             payload = Arrays.copyOf(payloadArr,payloadLength);
                             completePacket = Bytes.concat(header, payload);
                             incommingMessages.add(completePacket);
