@@ -110,7 +110,7 @@ class ServerComms(object):
 		else:
 			messageData = self.ServerSocket.recv(messageLen)
 			logging.debug("*** {}".format(messageData))
-			messagePayload = json.loads(messageData)
+			messagePayload = json.loads(messageData.decode('utf-8'))
 			
 		logging.debug('Turned message {} into type {} payload {}'.format(binascii.hexlify(messageData), self.MessageTypes.toString(messageType), messagePayload))
 		return messagePayload
@@ -129,8 +129,8 @@ class ServerComms(object):
 		if messagePayload is not None:
 			messageString = json.dumps(messagePayload)
 			message.append(len(messageString))
-			for c in messageString:
-			    message.append(ord(c))
+			message.extend(str.encode(messageString))
+			    
 		else:
 			message.append(0)
 		
