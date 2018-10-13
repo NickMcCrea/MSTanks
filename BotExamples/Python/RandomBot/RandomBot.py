@@ -108,11 +108,12 @@ class ServerComms(object):
 		
 		if messageLen == 0:
 			messageData = bytearray()
-			messagePayload = None
+			messagePayload = {'messageType': messageType}
 		else:
 			messageData = self.ServerSocket.recv(messageLen)
 			logging.debug("*** {}".format(messageData))
 			messagePayload = json.loads(messageData.decode('utf-8'))
+			messagePayload['messageType'] = messageType
 			
 		logging.debug('Turned message {} into type {} payload {}'.format(
 			binascii.hexlify(messageData),
