@@ -1,7 +1,5 @@
 package com.mstanks.app;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.spi.Configurator;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.tuple.Pair;
@@ -10,10 +8,8 @@ import org.slf4j.LoggerFactory;
 
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.LogManager;
 
 public class App implements Runnable
 {
@@ -35,12 +31,14 @@ public class App implements Runnable
 
         host = System.getProperty("host", "localhost");
         port = Integer.getInteger("port", 8052);
-        tankName = System.getProperty("name", "JavaBot");
-        log.warn(System.getProperties().toString());
+        tankName = System.getProperty("name", "JavaBot:botty");
+        log.info("Host: " + host);
+        log.info("Port: " + port);
+        log.info("Tank Name: " + tankName);
         incomingMessages = new ConcurrentLinkedQueue<>();
         tcpConn =  new TCPConnectionSimple(host, port, incomingMessages);
         tcpConn.connect();
-        log.debug("App setup.");
+        log.info("App setup.");
     }
 
     private void process() throws InterruptedException {
@@ -59,6 +57,7 @@ public class App implements Runnable
             Random r = new Random();
             int randomTurretX = TankUtils.getNext(-70, 70);
             int randomTurretY = TankUtils.getNext(-100, 100);
+            log.info("turn the turret");
 
             //let's turn the tanks turret towards a random point.
             float targetHeading = TankUtils.getHeading(ourState.x, ourState.y, randomTurretX, randomTurretY);
@@ -66,6 +65,7 @@ public class App implements Runnable
 
             Thread.sleep(200);
 
+            log.info("turn the tank");
 
             //now let's turn the whole vehicle towards a different random point.
             int randomX = TankUtils.getNext(-70, 70);
@@ -74,6 +74,8 @@ public class App implements Runnable
             sendMessage(MessageFactory.createMovementMessage(MessageFactory.NetworkMessageType.TURN_TO_HEADING, targetHeading));
 
             Thread.sleep(200);
+
+            log.info("move the tank");
 
             //now let's move to that point.
             float distance = TankUtils.calculateDistance(ourState.x, ourState.y, randomX, randomY);
@@ -144,7 +146,7 @@ public class App implements Runnable
             }
             return gState;
         } catch (IOException e) {
-            log.warn("Unable to parse game state: " + e.getMessage());
+            log.error("Unable to parse game state: " + e.getMessage());
             return null;
         }
     }
