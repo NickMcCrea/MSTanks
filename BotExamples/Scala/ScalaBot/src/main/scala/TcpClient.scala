@@ -46,9 +46,9 @@ class TcpClient(remote: InetSocketAddress, listener: ActorRef) extends Actor wit
 
         case Received(data) ⇒
           msgs = msgs ++ data
-          while (BtoUInt(msgs.head) > msgs.length){
-            listener ! toTankMessage(msgs.takeRight(BtoUInt(msgs.head)))
-            msgs = msgs.dropRight(BtoUInt(msgs.head )+1)
+          while ( msgs.nonEmpty && BtoUInt(msgs(1))+2 <= msgs.length){
+            listener ! toTankMessage(msgs.take(BtoUInt(msgs(1))+2))
+            msgs = msgs.drop(BtoUInt(msgs(1))+2)
           }
           log.info("received")
         case "close" ⇒
