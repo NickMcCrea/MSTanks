@@ -27,7 +27,7 @@ object Main {
      
      
      val system = ActorSystem("something")
-     val bot = system.actorOf(Bot.props(argM.getOrElse("name", "ScalaBot")), "Bot")
+     val bot = system.actorOf(Bot.props(argM.getOrElse("name", "ScalaBot:prime")), "Bot")
      val client = system.actorOf(TcpClient.props( new InetSocketAddress(argM.getOrElse("ip","localhost"), argM.getOrElse("port","8052").toInt), bot), "client")
      
      import system.dispatcher
