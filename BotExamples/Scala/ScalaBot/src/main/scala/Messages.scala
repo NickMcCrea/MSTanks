@@ -85,7 +85,7 @@ object TankMessage {
 
   }
 
-  def toTankMessage(data: ByteString): List[TankMessage] = {
+  def toTankMessage(data: ByteString): TankMessage = {
     
     /*
     TODO get rid off this mutabile coding style
@@ -95,29 +95,18 @@ object TankMessage {
     def BtoUInt(b: Byte) = b & 0xFF
 
     import MyJsonProtocol._
-
-    var c = 0
-    var msgs = ArrayBuffer[TankMessage]()
-    while (c < data.length) {
-      data(c) match {
+      data(0) match {
         case 18 =>
-          val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[UpdatePayload]
-          msgs.append(TankMessage(IntToMessageType(18), Some(payload)))
-          c += BtoUInt(data(c + 1)) + 2
+          val payload = data.drop(2).take(BtoUInt(data(1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[UpdatePayload]
+          TankMessage(IntToMessageType(18), Some(payload))
         case 21 =>
-          val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[IDPayload]
-          msgs.append(TankMessage(IntToMessageType(21), Some(payload)))
-          c += BtoUInt(data(c + 1)) + 2
+          val payload = data.drop(2).take(BtoUInt(data(1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[IDPayload]
+          TankMessage(IntToMessageType(21), Some(payload))
         case 26 =>
-          val payload = data.drop(c + 2).take(BtoUInt(data(c + 1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[TimePayload]
-          msgs.append(TankMessage(IntToMessageType(26), Some(payload)))
-          c += BtoUInt(data(c + 1)) + 2
+          val payload = data.drop(2).take(BtoUInt(data(1))).decodeString(StandardCharsets.US_ASCII).parseJson.convertTo[TimePayload]
+          TankMessage(IntToMessageType(26), Some(payload))
         case mT=>
-          msgs.append(TankMessage(IntToMessageType(mT.toInt)))
-          c += 2
+         TankMessage(IntToMessageType(mT.toInt))
       }
     }
-    msgs.toList
-  }
-
 }
