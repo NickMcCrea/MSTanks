@@ -6,6 +6,8 @@ import akka.io.Tcp._
 import akka.util.ByteString
 import TankMessage._
 
+import scala.collection.mutable.ArrayBuffer
+
 case object Ack extends Event
 
 object TcpClient {
@@ -14,6 +16,9 @@ object TcpClient {
 }
 
 class TcpClient(remote: InetSocketAddress, listener: ActorRef) extends Actor with ActorLogging {
+
+  var msgs: ByteString = ByteString.empty
+  def BtoUInt(b: Byte) = b & 0xFF
 
   import context.system
 
@@ -40,9 +45,11 @@ class TcpClient(remote: InetSocketAddress, listener: ActorRef) extends Actor wit
         // O/S buffer was full
 
         case Received(data) ⇒
-           toTankMessage(data).foreach {
-             listener !
-           }
+          msgs = msgs ++ data
+          while ( msgs.nonEmpty && BtoUInt(msgs(1))+2 <= msgs.length){
+            listener ! toTankMessage(msgs.take(BtoUInt(msgs(1))+2))
+            msgs = msgs.drop(BtoUInt(msgs(1))+2)
+          }
           log.info("received")
         case "close" ⇒
           connection ! Close
