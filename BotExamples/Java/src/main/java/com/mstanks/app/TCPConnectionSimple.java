@@ -61,20 +61,30 @@ public class TCPConnectionSimple implements Runnable {
 
                 byte[] payload = new byte[0];
                 if (payloadLength > 0) {
-                    payload = new byte[payloadLength];
-                    inStream.read(payload, 0, payloadLength);
+                    payload = getPayloadFromStream(inStream, payloadLength);
                 }
                 packet = Bytes.concat(header, payload);
                 log.debug(String.format("Recieved total packet of %d bytes", packet.length));
                 incommingMessages.add(packet);
 
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(e.getMessage());
                 connected = false;
             }
         }
     }
 
+    private byte[] getPayloadFromStream(InputStream stream, int length) throws IOException {
+        byte[] buffer = new byte[length];
+        int read = 0;
+
+        int chunk;
+        while((chunk = stream.read(buffer, read, buffer.length - read)) > 0)
+        {
+            read += chunk;
+        }
+        return buffer;
+    }
 
     public void write(byte[] message) {
         try {
@@ -82,8 +92,8 @@ public class TCPConnectionSimple implements Runnable {
             outStream.write(message);
             log.debug("Message written.");
         } catch (IOException e) {
-            log.warn("Exception encountered during write");
-            e.printStackTrace();
+            log.error("Exception encountered during write");
+            log.error(e.getMessage());
             connected = false;
         }
     }

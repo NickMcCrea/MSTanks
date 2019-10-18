@@ -46,6 +46,7 @@ func readLoop(conn net.Conn) {
 		readbuf.ReadByte() // message type
 		payloadLength, _ := readbuf.ReadByte()
 		payload := make([]byte, payloadLength)
+		//TODO: Code needs to be converted to consider when TCP Stream breaks, loop till byte buffer is truly full. See C#/Java/Python examples.
 		readbuf.Read(payload)
 		fmt.Println(string(payload))
 	}

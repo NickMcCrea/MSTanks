@@ -40,6 +40,7 @@ class TankRemote
                 this.onConnect[i]();
         }).bind(this));
 
+        //TODO: Code needs to be converted to consider when TCP Stream breaks, loop till byte buffer is truly full. See C#/Java/Python examples.
         this.socket.on('data', (function(data) {
             const bytes = Uint8Array.from(data);
             const rawString = data+'';
