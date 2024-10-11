@@ -1,9 +1,9 @@
 # MSTanks
-MS Hackathon project for GUTS Hackathon 2018
+MS Hackathon project for GUTS Hackathon 2024
 
 ## Description
 
-Contains all the materials required to take part in the MS challenge for GUTS 2018.
+Contains all the materials required to take part in the MS challenge for GUTS 2024.
 
 ## Contents
 
